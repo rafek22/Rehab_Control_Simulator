@@ -53,29 +53,15 @@ flowchart LR
 
 The simulator follows the control structure:
 
-$$
-\text{Therapy reference}
-\rightarrow
-\text{PID}
-\rightarrow
-\text{Motor}
-\rightarrow
-\text{Elbow}
-\rightarrow
-\text{Feedback}
-$$
+$$\text{Therapy reference} \rightarrow \text{PID} \rightarrow \text{Motor} \rightarrow \text{Elbow} \rightarrow \text{Feedback}$$
 
 The complete simulation runs with:
 
-$$
-\Delta t = 0.01\text{ s}
-$$
+$$\Delta t = 0.01\text{ s}$$
 
 corresponding to a control frequency of:
 
-$$
-f_s = 100\text{ Hz}
-$$
+$$f_s = 100\text{ Hz}$$
 
 ---
 
@@ -83,39 +69,19 @@ $$
 
 The elbow is represented by a rotational dynamic model:
 
-$$
-J\ddot{\theta}
-=
-\tau_{motor}
--
-\tau_{resistance}
--
-b\dot{\theta}
-$$
+$$J\ddot{\theta} = \tau_{motor} - \tau_{resistance} - b\dot{\theta}$$
 
 where the motor torque is:
 
-$$
-\tau_{motor}
-=
-u\tau_{max}
-$$
+$$\tau_{motor} = u\tau_{max}$$
 
 with:
 
-$$
--1 \leq u \leq 1
-$$
+$$-1 \leq u \leq 1$$
 
 Patient resistance is represented using a passive stiffness-damping model:
 
-$$
-\tau_{resistance}
-=
-k_r(\theta-\theta_{rest})
-+
-b_r\dot{\theta}
-$$
+$$\tau_{resistance} = k_r(\theta-\theta_{rest}) + b_r\dot{\theta}$$
 
 ### Model parameters
 
@@ -136,43 +102,19 @@ Angles are handled internally in **radians**, while user-facing results are expr
 
 Defining:
 
-$$
-x = \theta-\theta_{rest}
-$$
+$$x = \theta-\theta_{rest}$$
 
 the linearized model becomes:
 
-$$
-0.08\ddot{x}
-+
-0.35\dot{x}
-+
-x
-=
-5u
-$$
+$$0.08\ddot{x} + 0.35\dot{x} + x = 5u$$
 
 and therefore the plant transfer function is:
 
-$$
-\boxed{
-G(s)=
-\frac{5}
-{0.08s^2+0.35s+1}
-}
-$$
+$$G(s)=\frac{5}{0.08s^2+0.35s+1}$$
 
 The controller follows:
 
-$$
-u(t)
-=
-K_p e(t)
-+
-K_i\int e(t)\,dt
--
-K_d\dot{\theta}(t)
-$$
+$$u(t)=K_p e(t)+K_i\int e(t)\,dt-K_d\dot{\theta}(t)$$
 
 with the final gains:
 
@@ -197,15 +139,11 @@ The pole-placement calculation defines the desired closed-loop denominator, but 
 
 With an instantaneous `30° → 110°` step reference, the simulated system originally reached approximately:
 
-$$
-122.57^\circ
-$$
+$$122.57^\circ$$
 
 corresponding to roughly:
 
-$$
-15.7\%
-$$
+$$15.7\%$$
 
 overshoot relative to the 80° movement.
 
@@ -217,23 +155,15 @@ This motivated the introduction of **reference shaping** rather than repeatedly 
 
 Instead of commanding an instantaneous:
 
-$$
-30^\circ \rightarrow 110^\circ
-$$
+$$30^\circ \rightarrow 110^\circ$$
 
 the therapy controller generates a progressive reference limited to:
 
-$$
-40^\circ/s
-$$
+$$40^\circ/s$$
 
 At 100 Hz, the reference therefore changes by:
 
-$$
-40^\circ/s \times 0.01s
-=
-0.4^\circ
-$$
+$$40^\circ/s \times 0.01s = 0.4^\circ$$
 
 per simulation step.
 
@@ -304,19 +234,11 @@ A position is not considered reached simply because the elbow passes through the
 
 Both conditions must be satisfied:
 
-$$
-|\theta_{target}-\theta|
-\leq
-\theta_{tol}
-$$
+$$|\theta_{target}-\theta| \leq \theta_{tol}$$
 
 and:
 
-$$
-|\dot{\theta}|
-\leq
-\omega_{tol}
-$$
+$$|\dot{\theta}| \leq \omega_{tol}$$
 
 This prevents the state machine from entering `HOLD` while the joint is still moving rapidly through the target.
 
@@ -372,9 +294,7 @@ The global RMSE includes the tracking delay during the moving reference ramps.
 
 During `HOLD`, where accurate positioning is more relevant, the mean absolute error falls to:
 
-$$
-\boxed{0.162^\circ}
-$$
+$$MAE_{HOLD}=0.162^\circ$$
 
 The three repetitions also show highly repeatable simulated behaviour.
 
@@ -412,15 +332,11 @@ During each `HOLD` phase, velocity converges toward zero.
 
 The normalized command is constrained to:
 
-$$
--1\leq u\leq1
-$$
+$$-1 \leq u \leq 1$$
 
 while the final session reaches only:
 
-$$
-|u|_{max}=0.308
-$$
+$$|u|_{max}=0.308$$
 
 showing that the simulated actuator is not being driven through saturation during normal operation.
 
@@ -619,19 +535,7 @@ This project combines concepts from **control engineering, biomedical engineerin
 
 In particular, it demonstrates the complete path from:
 
-$$
-\text{physical model}
-\rightarrow
-\text{transfer function}
-\rightarrow
-\text{controller design}
-\rightarrow
-\text{discrete implementation}
-\rightarrow
-\text{safety logic}
-\rightarrow
-\text{quantitative validation}
-$$
+$$\text{physical model} \rightarrow \text{transfer function} \rightarrow \text{controller design} \rightarrow \text{discrete implementation} \rightarrow \text{safety logic} \rightarrow \text{quantitative validation}$$
 
 rather than treating the PID controller as an isolated software component.
 
