@@ -9,6 +9,7 @@ add_executable(Rehab_Control_Simulator
     src/main.cpp
     src/ElbowModel.cpp
     src/PIDController.cpp
+    src/TherapyController.cpp
 )
 
 target_include_directories(Rehab_Control_Simulator PRIVATE include)
