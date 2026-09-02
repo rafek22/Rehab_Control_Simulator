@@ -53,7 +53,7 @@ flowchart LR
 
 The simulator follows the control structure:
 
-\[
+$$
 \text{Therapy reference}
 \rightarrow
 \text{PID}
@@ -63,19 +63,19 @@ The simulator follows the control structure:
 \text{Elbow}
 \rightarrow
 \text{Feedback}
-\]
+$$
 
 The complete simulation runs with:
 
-\[
+$$
 \Delta t = 0.01\text{ s}
-\]
+$$
 
 corresponding to a control frequency of:
 
-\[
+$$
 f_s = 100\text{ Hz}
-\]
+$$
 
 ---
 
@@ -83,7 +83,7 @@ f_s = 100\text{ Hz}
 
 The elbow is represented by a rotational dynamic model:
 
-\[
+$$
 J\ddot{\theta}
 =
 \tau_{motor}
@@ -91,42 +91,42 @@ J\ddot{\theta}
 \tau_{resistance}
 -
 b\dot{\theta}
-\]
+$$
 
 where the motor torque is:
 
-\[
+$$
 \tau_{motor}
 =
 u\tau_{max}
-\]
+$$
 
 with:
 
-\[
+$$
 -1 \leq u \leq 1
-\]
+$$
 
 Patient resistance is represented using a passive stiffness-damping model:
 
-\[
+$$
 \tau_{resistance}
 =
 k_r(\theta-\theta_{rest})
 +
 b_r\dot{\theta}
-\]
+$$
 
 ### Model parameters
 
 | Parameter | Value | Description |
 |---|---:|---|
 | Initial / resting angle | 30° | Neutral simulated elbow position |
-| \(J\) | 0.08 kg·m² | Rotational inertia |
-| \(b\) | 0.15 N·m·s/rad | Joint damping |
-| \(k_r\) | 1.0 N·m/rad | Patient stiffness |
-| \(b_r\) | 0.20 N·m·s/rad | Patient damping |
-| \(\tau_{max}\) | 5.0 N·m | Maximum simulated motor torque |
+| $J$ | 0.08 kg·m² | Rotational inertia |
+| $b$ | 0.15 N·m·s/rad | Joint damping |
+| $k_r$ | 1.0 N·m/rad | Patient stiffness |
+| $b_r$ | 0.20 N·m·s/rad | Patient damping |
+| $\tau_{max}$ | 5.0 N·m | Maximum simulated motor torque |
 
 Angles are handled internally in **radians**, while user-facing results are expressed primarily in **degrees**.
 
@@ -136,13 +136,13 @@ Angles are handled internally in **radians**, while user-facing results are expr
 
 Defining:
 
-\[
+$$
 x = \theta-\theta_{rest}
-\]
+$$
 
 the linearized model becomes:
 
-\[
+$$
 0.08\ddot{x}
 +
 0.35\dot{x}
@@ -150,37 +150,37 @@ the linearized model becomes:
 x
 =
 5u
-\]
+$$
 
 and therefore the plant transfer function is:
 
-\[
+$$
 \boxed{
 G(s)=
 \frac{5}
 {0.08s^2+0.35s+1}
 }
-\]
+$$
 
 The controller follows:
 
-\[
+$$
 u(t)
 =
-K_pe(t)
+K_p e(t)
 +
 K_i\int e(t)\,dt
 -
 K_d\dot{\theta}(t)
-\]
+$$
 
 with the final gains:
 
 | Gain | Value |
 |---|---:|
-| \(K_p\) | 0.574 |
-| \(K_i\) | 1.344 |
-| \(K_d\) | 0.154 |
+| $K_p$ | 0.574 |
+| $K_i$ | 1.344 |
+| $K_d$ | 0.154 |
 
 The gains were obtained from a continuous pole-placement design using nominal targets of approximately **5% overshoot** and **2 s settling time**.
 
@@ -197,15 +197,15 @@ The pole-placement calculation defines the desired closed-loop denominator, but 
 
 With an instantaneous `30° → 110°` step reference, the simulated system originally reached approximately:
 
-\[
+$$
 122.57^\circ
-\]
+$$
 
 corresponding to roughly:
 
-\[
+$$
 15.7\%
-\]
+$$
 
 overshoot relative to the 80° movement.
 
@@ -217,23 +217,23 @@ This motivated the introduction of **reference shaping** rather than repeatedly 
 
 Instead of commanding an instantaneous:
 
-\[
+$$
 30^\circ \rightarrow 110^\circ
-\]
+$$
 
 the therapy controller generates a progressive reference limited to:
 
-\[
+$$
 40^\circ/s
-\]
+$$
 
 At 100 Hz, the reference therefore changes by:
 
-\[
+$$
 40^\circ/s \times 0.01s
 =
 0.4^\circ
-\]
+$$
 
 per simulation step.
 
@@ -304,19 +304,19 @@ A position is not considered reached simply because the elbow passes through the
 
 Both conditions must be satisfied:
 
-\[
+$$
 |\theta_{target}-\theta|
 \leq
 \theta_{tol}
-\]
+$$
 
 and:
 
-\[
+$$
 |\dot{\theta}|
 \leq
 \omega_{tol}
-\]
+$$
 
 This prevents the state machine from entering `HOLD` while the joint is still moving rapidly through the target.
 
@@ -350,7 +350,7 @@ The simulator validates controller gains, therapy settings, safety thresholds an
 
 The main loop also has a configurable maximum duration of **120 s**. If the therapy cannot finish within that time, it enters `FAULT` instead of running indefinitely.
 
-The four fault paths were also manually validated through fault injection during development.
+The fault paths were also manually validated through fault injection during development.
 
 ---
 
@@ -372,9 +372,9 @@ The global RMSE includes the tracking delay during the moving reference ramps.
 
 During `HOLD`, where accurate positioning is more relevant, the mean absolute error falls to:
 
-\[
+$$
 \boxed{0.162^\circ}
-\]
+$$
 
 The three repetitions also show highly repeatable simulated behaviour.
 
@@ -412,15 +412,15 @@ During each `HOLD` phase, velocity converges toward zero.
 
 The normalized command is constrained to:
 
-\[
+$$
 -1\leq u\leq1
-\]
+$$
 
 while the final session reaches only:
 
-\[
+$$
 |u|_{max}=0.308
-\]
+$$
 
 showing that the simulated actuator is not being driven through saturation during normal operation.
 
@@ -450,7 +450,7 @@ Simulation
 The CSV contains one header followed by one row per simulation step:
 
 ```text
-time,state,target_angle,angle,velocity,motor_command,error
+time,state,reference_angle,angle,velocity,motor_command,error
 ```
 
 ---
@@ -530,10 +530,15 @@ Common settings can therefore be changed in one place:
 
 ```cpp
 double targetAngleDegrees = 110.0;
+
 int repetitions = 3;
+
 double holdDuration = 2.0;
+
 double movementSpeedDegreesPerSecond = 40.0;
+
 double timeStep = 0.01;
+
 double maximumSimulationTime = 120.0;
 ```
 
@@ -614,7 +619,7 @@ This project combines concepts from **control engineering, biomedical engineerin
 
 In particular, it demonstrates the complete path from:
 
-\[
+$$
 \text{physical model}
 \rightarrow
 \text{transfer function}
@@ -626,7 +631,7 @@ In particular, it demonstrates the complete path from:
 \text{safety logic}
 \rightarrow
 \text{quantitative validation}
-\]
+$$
 
 rather than treating the PID controller as an isolated software component.
 
