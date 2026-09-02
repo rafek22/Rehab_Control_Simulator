@@ -6,18 +6,15 @@
 #include "TherapyController.hpp"
 #include "SafetyMonitor.hpp"
 #include "Logger.hpp"
+#include "Metrics.hpp"
+#include "Plotter.hpp"
+#include "SimulationConfig.hpp"
 
 constexpr double PI = 3.14159265358979323846;
 
-double degToRad(double degrees)
-{
-    return degrees * PI / 180.0;
-}
+double degToRad(double degrees) {return degrees * PI / 180.0;}
 
-double radToDeg(double radians)
-{
-    return radians * 180.0 / PI;
-}
+double radToDeg(double radians) {return radians * 180.0 / PI;}
 
 const char* stateToString(TherapyState state)
 {
@@ -62,6 +59,9 @@ const char* faultToString(FaultCode fault)
         case FaultCode::RESISTANCE:
             return "RESISTANCE";
 
+        case FaultCode::INVALID_DATA:
+            return "INVALID_DATA";
+
         default:
             return "UNKNOWN";
     }
@@ -69,47 +69,51 @@ const char* faultToString(FaultCode fault)
 
 int main()
 {
+    // Todos los parametros de la ejecucion se obtienen de una sola configuracion.
+    const SimulationConfig config;
+
     ElbowModel elbow;
 
     PIDController pid(
-        0.574,  // Kp
-        1.344,  // Ki
-        0.154   // Kd
+        config.kp,
+        config.ki,
+        config.kd
     );
 
     TherapyController therapy(
-    degToRad(30.0),   // initial angle
-    degToRad(110.0),  // target angle
-    3,                // repetitions
-    2.0,              // hold time
-    degToRad(1.0),    // angle tolerance
-    0.15,             // velocity tolerance [rad/s]
-    degToRad(40.0)    // movement speed [rad/s]
+        degToRad(config.initialAngleDegrees),
+        degToRad(config.targetAngleDegrees),
+        config.repetitions,
+        config.holdDuration,
+        degToRad(config.angleToleranceDegrees),
+        config.velocityTolerance,
+        degToRad(config.movementSpeedDegreesPerSecond)
     );
 
     SafetyMonitor safety(
-        degToRad(0.0),    // minimum joint angle
-        degToRad(140.0),  // maximum joint angle
-
-        0.70,             // stall command threshold
-        0.02,             // stall velocity threshold [rad/s]
-        0.50,             // stall time threshold [s]
-
-        3.0               // maximum patient resistance torque [Nm]
+        degToRad(config.minimumAngleDegrees),
+        degToRad(config.maximumAngleDegrees),
+        config.stallCommandThreshold,
+        config.stallVelocityThreshold,
+        config.stallTimeThreshold,
+        config.maximumPersonTorque
     );
 
-    Logger logger("../../output/session.csv");
+    Logger logger(config.sessionCsvPath);
 
-    double dt = 0.01;
+    Metrics metrics;
+    Plotter plotter;
+
+    const double dt = config.timeStep;
     double time = 0.0;
 
     therapy.start();
 
     TherapyState previousState = therapy.getState();
 
-    while (true)
+    while (time <= config.maximumSimulationTime)
     {
-        // Update therapy state machine
+        // Actualiza la maquina de estados de la terapia.
         therapy.update(
             elbow.getAngle(),
             elbow.getVelocity(),
@@ -118,51 +122,47 @@ int main()
 
         TherapyState currentState = therapy.getState();
 
-        // Reset PID when the target changes
+        // Reinicia el PID cuando cambia la direccion o el objetivo.
         if (currentState != previousState)
         {
-            if (currentState == TherapyState::RETURN ||
-                currentState == TherapyState::MOVE)
-            {
+            if (currentState == TherapyState::RETURN || currentState == TherapyState::MOVE)
                 pid.reset();
-            }
 
             previousState = currentState;
         }
 
-        // Stop if therapy has finished
+        // Sale del bucle cuando termina la terapia.
         if (currentState == TherapyState::WAITING)
-        {
             break;
-        }
 
-        // Stop if a fault was already active
+        // Sale del bucle si ya existe un fallo.
         if (currentState == TherapyState::FAULT)
-        {
             break;
-        }
 
-        // Get target according to current therapy state
+        // Obtiene la referencia progresiva generada por la terapia.
         double referenceAngle = therapy.getReferenceAngle();
 
-        // Closed-loop PID control
+        // Calcula la orden del motor mediante el control PID en lazo cerrado.
         double motorCommand = pid.compute(
             referenceAngle,
             elbow.getAngle(),
             dt
         );
 
-        // Simulate motor + elbow + patient
-        elbow.update(motorCommand, dt);
+        // Simula el motor, el codo y la resistencia de la persona.
+        elbow.update( motorCommand, dt);
 
+        // Calcula el error entre la referencia y el angulo real.
         double error = referenceAngle - elbow.getAngle();
 
-        // Stall should only be evaluated when movement is expected
+        bool isHold = currentState == TherapyState::HOLD;
+
+        // Solo comprueba bloqueo durante las fases que esperan movimiento.
         bool movementExpected =
             currentState == TherapyState::MOVE ||
             currentState == TherapyState::RETURN;
 
-        // Safety checks
+        // Ejecuta todas las comprobaciones de seguridad.
         FaultCode fault = safety.check(
             elbow.getAngle(),
             elbow.getVelocity(),
@@ -175,16 +175,24 @@ int main()
         if (fault != FaultCode::NONE)
         {
             therapy.setFault();
-
-            // Log the sample that caused the fault
+            // Guarda la muestra exacta que produjo el fallo.
             logger.log(
                 time,
-                stateToString(currentState),
+                "FAULT",
                 radToDeg(referenceAngle),
                 radToDeg(elbow.getAngle()),
                 elbow.getVelocity(),
                 motorCommand,
                 radToDeg(error)
+            );
+            // Incluye tambien la muestra del fallo en las metricas.
+            metrics.update(
+                time,
+                radToDeg(elbow.getAngle()),
+                elbow.getVelocity(),
+                motorCommand,
+                radToDeg(error),
+                isHold
             );
 
             std::cout
@@ -195,7 +203,7 @@ int main()
             break;
         }
 
-        // Log every simulation step (100 Hz)
+        // Guarda cada paso de la simulacion en el CSV.
         logger.log(
             time,
             stateToString(currentState),
@@ -206,42 +214,89 @@ int main()
             radToDeg(error)
         );
 
-        // Console output every 0.5 seconds
+        // Actualiza las metricas generales de la sesion.
+        metrics.update(
+            time,
+            radToDeg(elbow.getAngle()),
+            elbow.getVelocity(),
+            motorCommand,
+            radToDeg(error),
+            isHold
+        );
+
+        plotter.addSample(
+            time,
+            radToDeg(referenceAngle),
+            radToDeg(elbow.getAngle()),
+            elbow.getVelocity(),
+            motorCommand
+        );
+
+        // Muestra un resumen en la consola cada 0.5 segundos.
         if (static_cast<int>(time * 100) % 50 == 0)
         {
             std::cout
                 << std::fixed
                 << std::setprecision(2)
+
                 << "Time: " << time << " s"
-                << " | State: " << stateToString(currentState)
-                << " | Rep: " << therapy.getCompletedRepetitions()
-                << "/3"
-                << " | Target: " << radToDeg(referenceAngle) << " deg"
-                << " | Angle: " << radToDeg(elbow.getAngle()) << " deg"
-                << " | Error: " << radToDeg(error) << " deg"
-                << " | Motor: " << motorCommand
+
+                << " | State: "
+                << stateToString(currentState)
+
+                << " | Rep: "
+                << therapy.getCompletedRepetitions()
+                << "/" << config.repetitions
+
+                << " | Reference: "
+                << radToDeg(referenceAngle)
+                << " deg"
+
+                << " | Angle: "
+                << radToDeg(elbow.getAngle())
+                << " deg"
+
+                << " | Error: "
+                << radToDeg(error)
+                << " deg"
+
+                << " | Motor: "
+                << motorCommand
+
                 << '\n';
         }
-
         time += dt;
     }
+
+    if (therapy.getState() != TherapyState::WAITING && therapy.getState() != TherapyState::FAULT)
+    {
+        therapy.setFault();
+        std::cout << "\nFAULT detected: TIMEOUT\n";
+    }
+
+    // Guarda las metricas y las graficas al terminar la sesion.
+    metrics.save(config.metricsPath);
+    plotter.saveAll(config.figuresDirectory);
 
     if (therapy.getState() == TherapyState::FAULT)
     {
         std::cout
             << "\nTherapy session aborted."
+
             << "\nCompleted repetitions: "
             << therapy.getCompletedRepetitions()
+
             << '\n';
     }
     else
     {
         std::cout
             << "\nTherapy session completed."
+
             << "\nCompleted repetitions: "
             << therapy.getCompletedRepetitions()
+
             << '\n';
     }
-
     return 0;
 }

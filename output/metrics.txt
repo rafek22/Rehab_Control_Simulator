@@ -1,0 +1,10 @@
+REHAB CONTROL SIMULATOR - SESSION METRICS
+=========================================
+
+Session duration:            26.020 s
+Maximum angle:               114.921 deg
+Minimum angle:               25.391 deg
+Maximum absolute velocity:   1.081 rad/s
+Maximum absolute command:    0.308
+Tracking RMSE:               4.514 deg
+HOLD mean absolute error:    0.162 deg

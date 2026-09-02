@@ -8,7 +8,7 @@ public:
     ElbowModel();
 
     // Actualiza el movimiento del codo usando la orden del motor y el tiempo transcurrido
-    void update(double motor_command, double dt);
+    void update(double motorCommand, double dt);
 
     // Devuelve el angulo actual del codo
     double getAngle() const;
@@ -27,11 +27,11 @@ private:
 
     double maxMotorTorque; // Par maximo que puede ejercer el motor, en N*m
 
-    double person_Stiffness; // Rigidez de la persona que devuelve el codo al reposo
-    double person_Damping;   // Resistencia de la persona debida a la velocidad
+    double personStiffness; // Rigidez de la persona que devuelve el codo al reposo
+    double personDamping;   // Resistencia de la persona debida a la velocidad
     double restAngle;        // Angulo de reposo de la persona, en radianes
 
-    double PersonTorque;
+    double personTorque;
 
 };
 
