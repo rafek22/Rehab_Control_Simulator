@@ -16,6 +16,8 @@ public:
     // Devuelve la velocidad angular actual
     double getVelocity() const;
 
+    double getPersonTorque() const;
+
 private:
     double angle;     // Angulo actual del codo, en radianes
     double velocity;  // Velocidad angular actual del codo, en rad/s
@@ -28,6 +30,9 @@ private:
     double person_Stiffness; // Rigidez de la persona que devuelve el codo al reposo
     double person_Damping;   // Resistencia de la persona debida a la velocidad
     double restAngle;        // Angulo de reposo de la persona, en radianes
+
+    double PersonTorque;
+
 };
 
 #endif

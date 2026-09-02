@@ -16,6 +16,8 @@ ElbowModel::ElbowModel()
     person_Stiffness = 1.0;  // Rigidez: fuerza que intenta devolver el codo al angulo de reposo
     person_Damping = 0.2;    // Resistencia debida a la velocidad
     restAngle = 0.523599;    // Angulo de reposo de la persona: 30 grados en radianes
+
+    PersonTorque = 0.0;
 }
 
 void ElbowModel::update(double motor_command, double dt)
@@ -24,10 +26,10 @@ void ElbowModel::update(double motor_command, double dt)
     double motorTorque = motor_command * maxMotorTorque;
 
     // Resistencia total de la persona: rigidez por desplazamiento mas amortiguamiento.
-    double person_Resistance = person_Stiffness * (angle - restAngle)+ person_Damping * velocity;
+    PersonTorque = person_Stiffness * (angle - restAngle) + person_Damping * velocity;
 
     // Par que queda despues de restar las resistencias al par producido por el motor.
-    double netTorque = motorTorque - person_Resistance - damping * velocity;
+    double netTorque = motorTorque - PersonTorque - damping * velocity;
 
     // Segunda ley de Newton para rotacion: aceleracion angular = par / inercia.
     double acceleration = netTorque / inertia;
@@ -45,4 +47,9 @@ double ElbowModel::getAngle() const
 double ElbowModel::getVelocity() const
 {
     return velocity;
+}
+
+double ElbowModel::getPersonTorque() const
+{
+    return PersonTorque;
 }

@@ -18,22 +18,35 @@ public:
         double targetAngle,
         int repetitions,
         double holdDuration,
-        double angleTolerance
+        double angleTolerance,
+        double velocityTolerance,
+        double movementSpeed
     );
 
     void start();
-    void update(double currentAngle, double dt);
 
-    double getTargetAngle() const;
+    void update(
+        double currentAngle,
+        double currentVelocity,
+        double dt
+    );
+
+    double getReferenceAngle() const;
+
     TherapyState getState() const;
 
     int getCompletedRepetitions() const;
+
+    void setFault();
 
 private:
     TherapyState state;
 
     double initialAngle;
     double targetAngle;
+
+    double referenceAngle;
+    double movementSpeed;
 
     int repetitions;
     int completedRepetitions;
@@ -42,6 +55,7 @@ private:
     double holdElapsed;
 
     double angleTolerance;
+    double velocityTolerance;
 };
 
 #endif
